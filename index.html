@@ -60,6 +60,7 @@ td[contenteditable="true"]:focus{background:#fff8e0;box-shadow:inset 0 0 0 2px v
 .footer{text-align:center;padding:16px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-light);letter-spacing:1px}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--green);color:var(--white);padding:10px 20px;font-family:'IBM Plex Mono',monospace;font-size:12px;z-index:2000;opacity:0;transition:opacity .3s}.toast.show{opacity:1}.toast.error{background:var(--oxide)}
 .info-box{background:#fffdf5;border:1px solid var(--gold);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--slate)}
+.cuotas-sel{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--border);padding:3px 5px;background:var(--cream);cursor:pointer;color:var(--slate)}.cuotas-sel:focus{outline:none;border-color:var(--gold)}
 </style>
 </head>
 <body>
@@ -84,7 +85,19 @@ td[contenteditable="true"]:focus{background:#fff8e0;box-shadow:inset 0 0 0 2px v
 <!-- GASTOS -->
 <div class="tab-panel" id="panel-gastos"><div class="kpi-row" id="gastos-kpis"></div><div class="card"><div class="card-header"><div class="card-title">Gastos Fijos <span class="badge">Editable</span></div><div class="card-actions"><button class="btn btn-gold btn-sm" onclick="addGastoRow('fijo')">+ Agregar</button><button class="btn btn-green btn-sm" onclick="save('gastos')">💾 Guardar</button></div></div><div class="table-wrap" id="gastos-fijos-table"></div></div><div class="card"><div class="card-header"><div class="card-title">Gastos Variables <span class="badge">Editable</span></div><div class="card-actions"><button class="btn btn-gold btn-sm" onclick="addGastoRow('variable')">+ Agregar</button></div></div><div class="table-wrap" id="gastos-var-table"></div></div></div>
 <!-- RENTABILIDAD -->
-<div class="tab-panel" id="panel-rentabilidad"><div class="kpi-row" id="rent-kpis"></div><div class="card"><div class="card-header"><div class="card-title">Precios de Venta <span class="badge">Editable</span></div><div class="card-actions"><button class="btn btn-green btn-sm" onclick="save('precios_venta')">💾 Guardar</button></div></div><div class="info-box">💡 Columna "Impo" se completa automáticamente desde Importaciones cuando hay datos. Si no, usa el valor manual (Impo A / Impo B).</div><div class="table-wrap" id="rent-precios-table"></div></div><div class="card"><div class="card-title">Desglose de Rentabilidad <span class="badge badge-calc">Calculado</span></div><div class="table-wrap" id="rent-calc-table"></div></div></div>
+<div class="tab-panel" id="panel-rentabilidad">
+  <div class="kpi-row" id="rent-kpis"></div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Desglose de Rentabilidad <span class="badge badge-calc">Calculado</span></div>
+      <div class="card-actions">
+        <button class="btn btn-green btn-sm" onclick="save('precios_venta')">💾 Guardar precios</button>
+      </div>
+    </div>
+    <div class="info-box">💡 Editá FOB, Impo A, Impo B, PV ARS y Notas directamente en la tabla. Seleccioná las cuotas por modelo para recalcular financiación automáticamente. Impo se completa desde Importaciones cuando hay datos.</div>
+    <div class="table-wrap" id="rent-calc-table"></div>
+  </div>
+</div>
 </div>
 <div class="modal-overlay" id="modal"><div class="modal" id="modal-content"></div></div>
 <div class="toast" id="toast"></div>
@@ -298,23 +311,43 @@ function rGastos(){
 
 function rRent(){
   const P=DATA.precios_venta||[],d=getDolar(),iva=getCfg('iva_neto'),insp=getCfg('inspeccion_china_fob'),env=getCfg('envio_promedio_usd');
+  // Packaging: suma de todos los costos_producto activos (en USD)
   const pkg=(DATA.costos_producto||[]).filter(r=>r.activo==='SI').reduce((s,r)=>s+N(r.costo_usd),0);
   const fm={1:getCfg('mp_fee_1_cuota'),2:getCfg('mp_fee_2_cuotas'),3:getCfg('mp_fee_3_cuotas'),6:getCfg('mp_fee_6_cuotas'),9:getCfg('mp_fee_9_cuotas'),12:getCfg('mp_fee_12_cuotas')};
   const impoMap = getImpoCostMap();
 
-  // Editable prices
-  document.getElementById('rent-precios-table').innerHTML=eT('precios_venta',[{label:'Modelo',key:'modelo',edit:true},{label:'FOB USD',key:'fob_usd',cls:'num',edit:true},{label:'Impo A (manual)',key:'impo_a_usd',cls:'num',edit:true},{label:'Impo B (manual)',key:'impo_b_usd',cls:'num',edit:true},{label:'Cuotas',key:'cuotas_default',cls:'num',edit:true},{label:'PV ARS',key:'pventa_ars',cls:'num',edit:true},{label:'Notas',key:'notas',edit:true}],P,false);
+  // Tabla unificada: editable + calculada en una sola vista
+  let h=`<table id="tbl-precios_venta">
+  <thead><tr>
+    <th>Modelo</th>
+    <th title="Editable">FOB USD ✎</th>
+    <th>Impo USD</th>
+    <th>Fuente</th>
+    <th>INSP (${(insp*100).toFixed(0)}%)</th>
+    <th>Pkg</th>
+    <th>Costo 1</th>
+    <th>Envío</th>
+    <th>Cuotas ▾</th>
+    <th>Financ.</th>
+    <th>IVA</th>
+    <th>Costo Total</th>
+    <th title="Editable">PV ARS ✎</th>
+    <th>PV USD</th>
+    <th>Margen</th>
+    <th></th>
+  </tr></thead><tbody>`;
 
-  // Calculated
-  let h='<table><thead><tr><th>Modelo</th><th>FOB</th><th>Impo</th><th>Fuente Impo</th><th>Insp.</th><th>Pkg</th><th>Costo 1</th><th>Envío</th><th>Cuotas</th><th>Financ.</th><th>IVA</th><th>Costo Total</th><th>PV ARS</th><th>PV USD</th><th>Margen</th><th></th></tr></thead><tbody>';
-  let tM=0,nM=0;
+  let tM=0,nM=0,tCosto=0,tPvU=0;
 
-  P.forEach(r=>{
-    const modelo = (r.modelo||'').trim();
-    const fob=N(r.fob_usd), cu=N(r.cuotas_default)||1, pvA=N(r.pventa_ars);
+  P.forEach((r,ri)=>{
+    const modelo=(r.modelo||'').trim();
+    const fob=N(r.fob_usd), pvA=N(r.pventa_ars);
     if(!pvA) return;
 
-    // IMPO: use importaciones if available, otherwise manual
+    // Cuotas: leer del estado guardado en DATA o usar cuotas_default
+    const cuSel = N(r.cuotas_default)||1;
+
+    // IMPO: auto desde importaciones si hay datos, manual si no
     let impoUSD, impoSource;
     if (impoMap[modelo] && impoMap[modelo].cant > 0) {
       impoUSD = impoMap[modelo].prom;
@@ -324,18 +357,85 @@ function rRent(){
       impoSource = chip('Manual','manual');
     }
 
-    const pvU=pvA/d, ins=fob*insp, c1=fob+impoUSD+ins+pkg;
-    const fee=fm[cu]||fm[1], fin=pvA*fee/d, iv=pvA*iva/d;
-    const cT=c1+env+fin+iv, mg=pvU>0?(pvU-cT)/pvU:0;
-    tM+=mg;nM++;
-    const bc=mg>=.4?'hi':mg>=.3?'mid':'low',bw=Math.max(0,Math.min(100,mg*100));
-    h+=`<tr><td>${modelo}</td><td class="num">${fU(fob)}</td><td class="num">${fU(impoUSD)}</td><td>${impoSource}</td><td class="num">${fU(ins)}</td><td class="num">${fU(pkg)}</td><td class="num">${fU(c1)}</td><td class="num">${fU(env)}</td><td class="num">${cu}</td><td class="num">${fU(fin)}</td><td class="num">${fU(iv)}</td><td class="num"><strong>${fU(cT)}</strong></td><td class="num">${fA(pvA)}</td><td class="num">${fU(pvU)}</td><td class="num"><strong>${fP(mg)}</strong></td><td><div class="margin-bar-bg"><div class="margin-bar ${bc}" style="width:${bw}%"></div></div></td></tr>`;
+    // INSP: FOB × % inspección (viene de config como decimal, ej: 0.05)
+    const ins = fob * insp;
+
+    // Costo 1: FOB + Impo + INSP + Packaging
+    const c1 = fob + impoUSD + ins + pkg;
+
+    // Financiación: PV ARS × fee de las cuotas seleccionadas, convertido a USD
+    const fee = fm[cuSel] || fm[1];
+    const fin = (pvA * fee) / d;
+
+    // IVA: PV ARS × iva_neto (iva_neto en config = tasa neta, ej: 0.1736 para IVA 21%)
+    const iv = (pvA * iva) / d;
+
+    // Costo total y margen en USD
+    const pvU = pvA / d;
+    const cT = c1 + env + fin + iv;
+    const mg = pvU > 0 ? (pvU - cT) / pvU : 0;
+    tM+=mg; nM++; tCosto+=cT; tPvU+=pvU;
+
+    const bc=mg>=.4?'hi':mg>=.3?'mid':'low';
+    const bw=Math.max(0,Math.min(100,mg*100));
+
+    // Selector de cuotas con opciones disponibles
+    const cuOpts=[1,2,3,6,9,12].map(c=>`<option value="${c}"${c===cuSel?' selected':''}>${c}c</option>`).join('');
+
+    h+=`<tr data-idx="${ri}">
+      <td data-key="modelo">${modelo}</td>
+      <td class="num" contenteditable="true" data-key="fob_usd" data-idx="${ri}">${fob}</td>
+      <td class="num">${fU(impoUSD)}</td>
+      <td>${impoSource}</td>
+      <td class="num">${fU(ins)}</td>
+      <td class="num">${fU(pkg)}</td>
+      <td class="num"><strong>${fU(c1)}</strong></td>
+      <td class="num">${fU(env)}</td>
+      <td class="num" style="padding:4px 6px">
+        <select class="cuotas-sel" data-idx="${ri}" onchange="rentCuotasChange(this)" style="font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--border);padding:3px 6px;background:var(--cream);cursor:pointer">
+          ${cuOpts}
+        </select>
+      </td>
+      <td class="num">${fU(fin)}</td>
+      <td class="num">${fU(iv)}</td>
+      <td class="num"><strong>${fU(cT)}</strong></td>
+      <td class="num" contenteditable="true" data-key="pventa_ars" data-idx="${ri}">${pvA}</td>
+      <td class="num">${fU(pvU)}</td>
+      <td class="num">
+        <strong style="color:var(--${bc==='hi'?'green':bc==='mid'?'gold':'oxide'})">${fP(mg)}</strong>
+        <div class="margin-bar-bg" style="margin-top:3px"><div class="margin-bar ${bc}" style="width:${bw}%"></div></div>
+      </td>
+      <td style="width:28px"></td>
+    </tr>`;
   });
+
   h+='</tbody></table>';
   document.getElementById('rent-calc-table').innerHTML=h;
 
+  // Sincronizar cambios de celdas editables al DATA
+  document.querySelectorAll('#tbl-precios_venta td[contenteditable]').forEach(td=>{
+    td.addEventListener('blur', ()=>{
+      const idx=+td.dataset.idx, key=td.dataset.key;
+      if(DATA.precios_venta[idx]) DATA.precios_venta[idx][key]=td.textContent.trim();
+      rRent(); // recalcular
+    });
+  });
+
   const avg=nM>0?tM/nM:0;
-  document.getElementById('rent-kpis').innerHTML=kpi('Modelos',nM.toString(),'')+kpi('Margen Prom.',fP(avg),'',avg>=.35?'green':'oxide')+kpi('Packaging',fU(pkg),'')+kpi('Dólar',fA(d),DOLAR_BLUE?'Auto':'Manual','gold');
+  const margenTotal=tPvU>0?(tPvU-tCosto)/tPvU:0;
+  document.getElementById('rent-kpis').innerHTML=
+    kpi('Modelos',nM.toString(),'')+
+    kpi('Margen Prom.',fP(avg),'todos los modelos',avg>=.35?'green':'oxide')+
+    kpi('Margen Total',fP(margenTotal),'sobre PV USD',margenTotal>=.35?'green':'oxide')+
+    kpi('Packaging',fU(pkg),'costos activos')+
+    kpi('INSP %',fP(insp),'× FOB por modelo')+
+    kpi('Dólar',fA(d),DOLAR_BLUE?'Auto API':'Manual','gold');
+}
+
+function rentCuotasChange(sel){
+  const idx=+sel.dataset.idx;
+  if(DATA.precios_venta[idx]) DATA.precios_venta[idx].cuotas_default=sel.value;
+  rRent();
 }
 
 // ═══ TABS ═══
