@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crosby — Control Operativo</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--cream:#f7f4ef;--gold:#b8952a;--green:#264e36;--green-light:#3a7a52;--oxide:#a63d2f;--slate:#3a4659;--slate-light:#5a6a7f;--white:#fff;--bg:#f2efe9;--card:#fff;--border:#e0dbd2;--text:#2a2a2a;--text-muted:#8a8578;--text-light:#b0a898;--shadow:0 1px 3px rgba(58,70,89,.08)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+.header{background:var(--slate);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--gold);flex-wrap:wrap;gap:8px}
+.header-brand{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:24px;color:var(--gold);letter-spacing:3px;text-transform:uppercase}
+.header-sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--slate-light);letter-spacing:1px}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--oxide);transition:background .3s}.status-dot.ok{background:#4caf50}
+#statusText{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-light)}
+.btn{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.5px;text-transform:uppercase;border:none;padding:7px 16px;cursor:pointer;transition:all .2s}
+.btn-slate{background:var(--slate);color:var(--white)}.btn-slate:hover{background:var(--gold)}
+.btn-gold{background:var(--gold);color:var(--white)}.btn-gold:hover{background:var(--green)}
+.btn-green{background:var(--green);color:var(--white)}.btn-green:hover{background:var(--green-light)}
+.btn-oxide{background:var(--oxide);color:var(--white)}.btn-oxide:hover{opacity:.8}
+.btn-sm{padding:4px 10px;font-size:10px}
+.btn-google{background:#4285f4;color:#fff;display:flex;align-items:center;gap:6px}.btn-google:hover{background:#3367d6}
+.tabs{background:var(--white);border-bottom:1px solid var(--border);display:flex;padding:0 28px;overflow-x:auto}
+.tab{padding:13px 22px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.5px;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;text-transform:uppercase}.tab:hover{color:var(--text)}.tab.active{color:var(--gold);border-bottom-color:var(--gold);font-weight:500}
+.main{padding:20px 28px;max-width:1440px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--border);padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.card-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:var(--slate);display:flex;align-items:center;gap:8px}
+.badge{font-family:'IBM Plex Mono',monospace;font-size:9px;background:var(--gold);color:var(--white);padding:2px 7px;letter-spacing:1px;text-transform:uppercase}
+.badge-calc{background:var(--green)}
+.card-actions{display:flex;gap:6px;flex-wrap:wrap}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:18px}
+.kpi-card{background:var(--card);border:1px solid var(--border);padding:16px;box-shadow:var(--shadow)}
+.kpi-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px}
+.kpi-value{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:500;color:var(--slate)}
+.kpi-value.gold{color:var(--gold)}.kpi-value.green{color:var(--green)}.kpi-value.oxide{color:var(--oxide)}
+.kpi-detail{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted);margin-top:3px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:var(--white);background:var(--slate);padding:9px 10px;text-align:left;white-space:nowrap;position:sticky;top:0}
+tbody td{padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody tr:nth-child(even){background:#faf8f4}tbody tr:hover{background:#f0ede5}
+.num{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px}
+.chip{display:inline-block;padding:2px 8px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.5px}
+.chip-pagado{background:#264e3620;color:var(--green)}.chip-pendiente{background:#b8952a20;color:var(--gold)}
+.chip-auto{background:#264e3620;color:var(--green)}.chip-manual{background:#b8952a20;color:var(--gold)}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.margin-bar-bg{width:100%;height:5px;background:var(--border)}.margin-bar{height:100%;transition:width .4s}.margin-bar.hi{background:var(--green)}.margin-bar.mid{background:var(--gold)}.margin-bar.low{background:var(--oxide)}
+td[contenteditable="true"]{background:#fffdf5;cursor:text;outline:none;min-width:55px}
+td[contenteditable="true"]:focus{background:#fff8e0;box-shadow:inset 0 0 0 2px var(--gold)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;justify-content:center;align-items:center}.modal-overlay.show{display:flex}
+.modal{background:var(--white);padding:24px;width:90%;max-width:500px;max-height:80vh;overflow-y:auto;border:1px solid var(--border)}
+.modal h3{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--slate);margin-bottom:16px}
+.modal label{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin:10px 0 4px}
+.modal input,.modal select{width:100%;padding:8px 10px;border:1px solid var(--border);font-family:'IBM Plex Sans',sans-serif;font-size:14px}
+.modal input:focus,.modal select:focus{outline:none;border-color:var(--gold)}
+.modal-btns{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+.footer{text-align:center;padding:16px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-light);letter-spacing:1px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--green);color:var(--white);padding:10px 20px;font-family:'IBM Plex Mono',monospace;font-size:12px;z-index:2000;opacity:0;transition:opacity .3s}.toast.show{opacity:1}.toast.error{background:var(--oxide)}
+.info-box{background:#fffdf5;border:1px solid var(--gold);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--slate)}
+</style>
+</head>
+<body>
+<div class="header">
+<div><div class="header-brand">Crosby</div><div class="header-sub">Control Operativo</div></div>
+<div class="header-right">
+<div class="status-dot" id="statusDot"></div><span id="statusText">Conectando...</span>
+<button class="btn btn-slate" onclick="loadAllData()">↻ Recargar</button>
+<button class="btn btn-google" id="btnAuth" onclick="handleAuth()">🔑 Conectar Google</button>
+</div>
+</div>
+<div class="tabs"><div class="tab active" data-tab="config">Config</div><div class="tab" data-tab="costos">Costos</div><div class="tab" data-tab="compras">Compras</div><div class="tab" data-tab="importaciones">Importaciones</div><div class="tab" data-tab="gastos">Gastos</div><div class="tab" data-tab="rentabilidad">Rentabilidad</div></div>
+<div class="main">
+<!-- CONFIG -->
+<div class="tab-panel active" id="panel-config"><div class="kpi-row" id="config-kpis"></div><div class="card"><div class="card-header"><div class="card-title">Parámetros <span class="badge">Editable</span></div><div class="card-actions"><button class="btn btn-gold btn-sm" onclick="addConfigRow()">+ Agregar</button><button class="btn btn-green btn-sm" onclick="save('config')">💾 Guardar</button></div></div><div class="table-wrap" id="config-table"></div></div></div>
+<!-- COSTOS -->
+<div class="tab-panel" id="panel-costos"><div class="kpi-row" id="costos-kpis"></div><div class="card"><div class="card-header"><div class="card-title">Costos Unitarios <span class="badge">Editable</span></div><div class="card-actions"><button class="btn btn-gold btn-sm" onclick="addCostoRow()">+ Agregar</button><button class="btn btn-green btn-sm" onclick="save('costos_producto')">💾 Guardar</button></div></div><div class="table-wrap" id="costos-table"></div></div></div>
+<!-- COMPRAS -->
+<div class="tab-panel" id="panel-compras"><div class="kpi-row" id="compras-kpis"></div><div class="card"><div class="card-header"><div class="card-title">Líneas de Factura <span class="badge">Editable</span></div><div class="card-actions"><button class="btn btn-gold btn-sm" onclick="addCompraRow()">+ Agregar</button><button class="btn btn-green btn-sm" onclick="save('compras_lineas')">💾 Guardar</button></div></div><div class="table-wrap" id="compras-lineas-table"></div></div><div class="card"><div class="card-header"><div class="card-title">Pagos <span class="badge">Editable</span></div><div class="card-actions"><button class="btn btn-gold btn-sm" onclick="addPagoRow()">+ Agregar</button><button class="btn btn-green btn-sm" onclick="save('compras_pagos')">💾 Guardar</button></div></div><div class="table-wrap" id="compras-pagos-table"></div></div><div class="card"><div class="card-title">Saldo por Factura <span class="badge badge-calc">Calculado</span></div><div class="table-wrap" id="compras-saldo-table"></div></div></div>
+<!-- IMPORTACIONES -->
+<div class="tab-panel" id="panel-importaciones"><div class="kpi-row" id="impo-kpis"></div><div class="info-box">💡 El costo promedio de importación por modelo alimenta automáticamente la tabla de Rentabilidad. Para modelos sin datos acá se usa el valor manual de la tabla Precios de Venta.</div><div class="card"><div class="card-header"><div class="card-title">Importaciones <span class="badge">Editable</span></div><div class="card-actions"><button class="btn btn-gold btn-sm" onclick="addImpoRow()">+ Agregar</button><button class="btn btn-green btn-sm" onclick="save('importaciones')">💾 Guardar</button></div></div><div class="table-wrap" id="impo-table"></div></div><div class="card"><div class="card-title">Costo Promedio por Modelo <span class="badge badge-calc">Auto → Rentabilidad</span></div><div class="table-wrap" id="impo-resumen-table"></div></div></div>
+<!-- GASTOS -->
+<div class="tab-panel" id="panel-gastos"><div class="kpi-row" id="gastos-kpis"></div><div class="card"><div class="card-header"><div class="card-title">Gastos Fijos <span class="badge">Editable</span></div><div class="card-actions"><button class="btn btn-gold btn-sm" onclick="addGastoRow('fijo')">+ Agregar</button><button class="btn btn-green btn-sm" onclick="save('gastos')">💾 Guardar</button></div></div><div class="table-wrap" id="gastos-fijos-table"></div></div><div class="card"><div class="card-header"><div class="card-title">Gastos Variables <span class="badge">Editable</span></div><div class="card-actions"><button class="btn btn-gold btn-sm" onclick="addGastoRow('variable')">+ Agregar</button></div></div><div class="table-wrap" id="gastos-var-table"></div></div></div>
+<!-- RENTABILIDAD -->
+<div class="tab-panel" id="panel-rentabilidad"><div class="kpi-row" id="rent-kpis"></div><div class="card"><div class="card-header"><div class="card-title">Precios de Venta <span class="badge">Editable</span></div><div class="card-actions"><button class="btn btn-green btn-sm" onclick="save('precios_venta')">💾 Guardar</button></div></div><div class="info-box">💡 Columna "Impo" se completa automáticamente desde Importaciones cuando hay datos. Si no, usa el valor manual (Impo A / Impo B).</div><div class="table-wrap" id="rent-precios-table"></div></div><div class="card"><div class="card-title">Desglose de Rentabilidad <span class="badge badge-calc">Calculado</span></div><div class="table-wrap" id="rent-calc-table"></div></div></div>
+</div>
+<div class="modal-overlay" id="modal"><div class="modal" id="modal-content"></div></div>
+<div class="toast" id="toast"></div>
+<div class="footer">CROSBY CONTROL OPERATIVO — Google Sheets + OAuth2</div>
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client"></script>
+
+<script>
+// ═══ CONSTANTS ═══
+const SHEET_ID='1AI-GuzygLkGRI2ZpUrDw-Lq-kXQmvRq8h1PWXIioxZg';
+const CLIENT_ID='631198708198-lmd4osvv63jt0tf361dr1nm7ke7dnf60.apps.googleusercontent.com';
+const SCOPES='https://www.googleapis.com/auth/spreadsheets';
+const SH={config:{gid:'806006897',name:'config'},costos_producto:{gid:'417997231',name:'costos_producto'},compras_lineas:{gid:'1685876231',name:'compras_lineas'},compras_pagos:{gid:'1917845845',name:'compras_pagos'},importaciones:{gid:'1244576657',name:'importaciones'},gastos:{gid:'1105559434',name:'gastos'},precios_venta:{gid:'1793676374',name:'precios_venta'}};
+const HDRS={config:['parametro','valor','categoria','tipo','descripcion'],costos_producto:['id','descripcion','costo_ars','costo_usd','activo','notas'],compras_lineas:['factura','fecha','proveedor','modelo','categoria','cantidad','precio_unit_usd','subtotal_usd','notas'],compras_pagos:['factura','fecha_pago','monto_usd','metodo','notas'],importaciones:['id','fecha','tipo','modelo','categoria','cantidad','transfer_ars','transfer_usd','efectivo_usd','kg','usd_por_kg','total_usd','notas'],gastos:['id','descripcion','monto_ars','monto_usd','tipo','frecuencia','mes','notas'],precios_venta:['modelo','fob_usd','impo_a_usd','impo_b_usd','cuotas_default','pventa_ars','notas']};
+
+// ═══ AUTH ═══
+let accessToken = null;
+let tokenClient = null;
+
+function initAuth() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp) => {
+      if (resp.error) { toast('Auth error: '+resp.error, true); return; }
+      accessToken = resp.access_token;
+      document.getElementById('btnAuth').textContent = '✓ Conectado';
+      document.getElementById('btnAuth').style.background = '#264e36';
+      toast('Google conectado — podés guardar cambios');
+    }
+  });
+}
+
+function handleAuth() {
+  if (accessToken) { toast('Ya estás conectado'); return; }
+  tokenClient.requestAccessToken();
+}
+
+// ═══ CSV READ ═══
+function csvURL(k){return`https://corsproxy.io/?${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SH[k].gid}&_t=${Date.now()}`)}`}
+
+function parseCSV(t){const R=[];let row=[''],q=false,i=0;while(i<t.length){const c=t[i];if(c==='"'){if(q&&t[i+1]==='"'){row[row.length-1]+='"';i+=2}else{q=!q;i++}}else if(c===','&&!q){row.push('');i++}else if((c==='\n'||c==='\r')&&!q){R.push(row);row=[''];if(c==='\r'&&t[i+1]==='\n')i++;i++}else{row[row.length-1]+=c;i++}}if(row.length>1||row[0])R.push(row);if(R.length<2)return[];const h=R[0].map(x=>x.trim());return R.slice(1).filter(r=>r.some(c=>c.trim())).map(r=>{const o={};h.forEach((k,i)=>{o[k]=(r[i]||'').trim()});return o})}
+
+async function fetchSheet(k){const r=await fetch(csvURL(k));if(!r.ok)throw new Error(k+': '+r.status);return parseCSV(await r.text())}
+
+// ═══ SHEETS WRITE (OAuth2) ═══
+async function writeSheet(name, data, headers) {
+  if (!accessToken) throw new Error('Conectá Google primero (botón 🔑)');
+  const vals = [headers, ...data.map(row => headers.map(h => row[h] ?? ''))];
+  // Clear
+  await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(name)}:clear`, {
+    method:'POST', headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'}, body:'{}'
+  });
+  // Write
+  const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(name+'!A1')}?valueInputOption=USER_ENTERED`, {
+    method:'PUT', headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},
+    body: JSON.stringify({range:name+'!A1', majorDimension:'ROWS', values:vals})
+  });
+  if (!r.ok) { const e=await r.json(); throw new Error(e.error?.message||'Write failed'); }
+}
+
+// ═══ DATA ═══
+let DATA={}, DOLAR_BLUE=null;
+
+async function fetchDolar(){try{const r=await fetch('https://dolarapi.com/v1/dolares/blue');DOLAR_BLUE=(await r.json()).venta}catch(e){try{const r=await fetch('https://corsproxy.io/?'+encodeURIComponent('https://dolarapi.com/v1/dolares/blue'));DOLAR_BLUE=(await r.json()).venta}catch(e2){DOLAR_BLUE=null}}}
+
+async function loadAllData(){
+  const dot=document.getElementById('statusDot'),txt=document.getElementById('statusText');
+  dot.className='status-dot';txt.textContent='Cargando...';
+  try{
+    await fetchDolar();
+    const keys=Object.keys(SH),res=await Promise.all(keys.map(k=>fetchSheet(k)));
+    keys.forEach((k,i)=>{DATA[k]=res[i]});
+    dot.classList.add('ok');
+    txt.textContent=`OK — ${new Date().toLocaleTimeString('es-AR')}${DOLAR_BLUE?' | Blue: $'+DOLAR_BLUE:''}`;
+    renderAll();
+  }catch(e){console.error(e);txt.textContent='Error: '+e.message}
+}
+
+// ═══ HELPERS ═══
+const N=v=>{const x=parseFloat(v);return isNaN(x)?0:x};
+const fmt=(v,d=2)=>N(v).toLocaleString('es-AR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fU=(v,d=2)=>'U$D '+fmt(v,d);
+const fA=(v,d=0)=>'$ '+fmt(v,d);
+const fP=v=>(N(v)*100).toFixed(1)+'%';
+const getDolar=()=>DOLAR_BLUE||getCfg('dolar_blue_venta')||1440;
+function getCfg(p){if(!DATA.config)return 0;const r=DATA.config.find(x=>x.parametro===p);if(!r)return 0;const v=N(r.valor);return(r.tipo==='porcentaje'&&Math.abs(v)>1)?v/100:v}
+const chip=(t,c)=>`<span class="chip chip-${c}">${t}</span>`;
+const kpi=(l,v,d='',c='')=>`<div class="kpi-card"><div class="kpi-label">${l}</div><div class="kpi-value ${c}">${v}</div>${d?`<div class="kpi-detail">${d}</div>`:''}</div>`;
+function toast(m,e=false){const t=document.getElementById('toast');t.textContent=m;t.className='toast show'+(e?' error':'');setTimeout(()=>t.className='toast',3000)}
+function showModal(h){document.getElementById('modal-content').innerHTML=h;document.getElementById('modal').classList.add('show')}
+function closeModal(){document.getElementById('modal').classList.remove('show')}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.classList.contains('modal-overlay'))closeModal()});
+
+// ═══ IMPO COST MAP (core logic) ═══
+function getImpoCostMap() {
+  // Returns { "N1 Silver": { total_usd, cantidad, promedio }, ... }
+  // Only for categoria=Reloj or unspecified
+  const map = {};
+  (DATA.importaciones||[]).forEach(r => {
+    if (r.categoria && r.categoria !== 'Reloj') return;
+    const m = (r.modelo||'').trim();
+    if (!m) return;
+    if (!map[m]) map[m] = {total:0, cant:0};
+    map[m].total += N(r.total_usd);
+    map[m].cant += N(r.cantidad);
+  });
+  Object.keys(map).forEach(k => { map[k].prom = map[k].cant > 0 ? map[k].total / map[k].cant : 0; });
+  return map;
+}
+
+// ═══ EDITABLE TABLE ═══
+function eT(id,cols,rows,del=false){
+  let h='<table id="tbl-'+id+'"><thead><tr>';
+  cols.forEach(c=>{h+=`<th>${c.label}</th>`});if(del)h+='<th></th>';
+  h+='</tr></thead><tbody>';
+  rows.forEach((r,ri)=>{h+=`<tr data-idx="${ri}">`;cols.forEach(c=>{const v=r[c.key]??'';h+=c.edit?`<td class="${c.cls||''}" contenteditable="true" data-key="${c.key}" data-idx="${ri}">${v}</td>`:`<td class="${c.cls||''}">${v}</td>`});if(del)h+=`<td><button class="btn btn-oxide btn-sm" onclick="delRow('${id}',${ri})">✕</button></td>`;h+='</tr>'});
+  if(!rows.length)h+=`<tr><td colspan="${cols.length+(del?1:0)}" style="text-align:center;color:var(--text-muted);padding:20px">Sin datos</td></tr>`;
+  return h+'</tbody></table>';
+}
+
+function readTbl(key){
+  const tbl=document.getElementById('tbl-'+key);if(!tbl)return DATA[key]||[];
+  const rows=[];
+  tbl.querySelectorAll('tbody tr[data-idx]').forEach(tr=>{
+    const idx=+tr.dataset.idx, src=key.replace('_v','');
+    const obj={...(DATA[src]?.[idx]||{})};
+    tr.querySelectorAll('td[data-key]').forEach(td=>{obj[td.dataset.key]=td.textContent.trim()});
+    rows.push(obj)});
+  return rows;
+}
+
+async function save(key){
+  try{
+    toast('Guardando...');
+    const data=readTbl(key);
+    await writeSheet(SH[key].name,data,HDRS[key]);
+    DATA[key]=data;
+    toast('✓ Guardado en Sheets');
+    renderAll();
+  }catch(e){console.error(e);toast(e.message,true)}
+}
+
+function delRow(key,idx){if(!confirm('¿Eliminar fila?'))return;DATA[key].splice(idx,1);renderAll();toast('Eliminada — guardá para confirmar')}
+
+// ═══ ADD MODALS ═══
+function addConfigRow(){showModal(`<h3>Agregar Parámetro</h3><label>Parámetro</label><input id="m-p"><label>Valor</label><input id="m-v" type="number" step="any"><label>Categoría</label><input id="m-c" placeholder="tipo_cambio, tasas_mp, impuestos, logistica"><label>Tipo</label><select id="m-t"><option value="numero">Número</option><option value="porcentaje">Porcentaje</option></select><label>Descripción</label><input id="m-d"><div class="modal-btns"><button class="btn btn-slate" onclick="closeModal()">Cancelar</button><button class="btn btn-gold" onclick="cAdd('config',{parametro:gv('m-p'),valor:gv('m-v'),categoria:gv('m-c'),tipo:gv('m-t'),descripcion:gv('m-d')})">Agregar</button></div>`)}
+
+function addCostoRow(){const d=getDolar();showModal(`<h3>Agregar Costo</h3><label>Descripción</label><input id="m-cd"><label>Costo ARS</label><input id="m-ca" type="number" step="any" oninput="document.getElementById('m-cu').value=(this.value/${d}).toFixed(4)"><label>Costo USD</label><input id="m-cu" type="number" step="any" oninput="document.getElementById('m-ca').value=(this.value*${d}).toFixed(0)"><label>Activo</label><select id="m-cs"><option value="SI">SI</option><option value="NO">NO</option></select><label>Notas</label><input id="m-cn"><div class="modal-btns"><button class="btn btn-slate" onclick="closeModal()">Cancelar</button><button class="btn btn-gold" onclick="cAdd('costos_producto',{id:String((DATA.costos_producto||[]).length+1),descripcion:gv('m-cd'),costo_ars:gv('m-ca'),costo_usd:gv('m-cu'),activo:gv('m-cs'),notas:gv('m-cn')})">Agregar</button></div>`)}
+
+function addCompraRow(){showModal(`<h3>Agregar Línea</h3><label>Factura</label><input id="m-f"><label>Fecha</label><input id="m-fd" type="date"><label>Proveedor</label><input id="m-fp"><label>Modelo/Item</label><input id="m-fm"><label>Categoría</label><select id="m-fc"><option>Reloj</option><option>Packaging</option><option>Envío</option><option>Otro</option></select><label>Cantidad</label><input id="m-fq" type="number"><label>Precio Unit USD</label><input id="m-fu" type="number" step="any"><label>Notas</label><input id="m-fn"><div class="modal-btns"><button class="btn btn-slate" onclick="closeModal()">Cancelar</button><button class="btn btn-gold" onclick="cAddCompra()">Agregar</button></div>`)}
+function cAddCompra(){const q=N(gv('m-fq')),p=N(gv('m-fu'));cAdd('compras_lineas',{factura:gv('m-f'),fecha:gv('m-fd'),proveedor:gv('m-fp'),modelo:gv('m-fm'),categoria:gv('m-fc'),cantidad:String(q),precio_unit_usd:String(p),subtotal_usd:(q*p).toFixed(2),notas:gv('m-fn')})}
+
+function addPagoRow(){showModal(`<h3>Agregar Pago</h3><label>Factura</label><input id="m-pf"><label>Fecha</label><input id="m-pd" type="date"><label>Monto USD</label><input id="m-pm" type="number" step="any"><label>Método</label><input id="m-pe"><label>Notas</label><input id="m-pn"><div class="modal-btns"><button class="btn btn-slate" onclick="closeModal()">Cancelar</button><button class="btn btn-gold" onclick="cAdd('compras_pagos',{factura:gv('m-pf'),fecha_pago:gv('m-pd'),monto_usd:gv('m-pm'),metodo:gv('m-pe'),notas:gv('m-pn')})">Agregar</button></div>`)}
+
+function addImpoRow(){showModal(`<h3>Agregar Importación</h3><label>ID/Lote</label><input id="m-ii"><label>Fecha</label><input id="m-id" type="date"><label>Tipo</label><select id="m-it" onchange="document.getElementById('impo-a').style.display=this.value==='A'?'block':'none';document.getElementById('impo-b').style.display=this.value==='B'?'block':'none'"><option value="A">A — Transfer ARS + efectivo</option><option value="B">B — Efectivo USD (por Kg)</option></select><label>Modelo</label><input id="m-im"><label>Categoría</label><select id="m-ic"><option>Reloj</option><option>Packaging</option><option>Otro</option></select><label>Cantidad</label><input id="m-iq" type="number"><div id="impo-a"><label>Transferencia ARS</label><input id="m-ia" type="number" step="any"><label>Efectivo USD adicional</label><input id="m-ie" type="number" step="any" value="0"></div><div id="impo-b" style="display:none"><label>Kg totales</label><input id="m-ik" type="number" step="any"><label>USD/Kg</label><input id="m-iuk" type="number" step="any"></div><label>Notas</label><input id="m-in"><div class="modal-btns"><button class="btn btn-slate" onclick="closeModal()">Cancelar</button><button class="btn btn-gold" onclick="cAddImpo()">Agregar</button></div>`)}
+function cAddImpo(){const t=gv('m-it'),d=getDolar();let tA='',tU='',ef='',kg='',uk='',tot=0;if(t==='A'){tA=gv('m-ia');tU=(N(tA)/d).toFixed(2);ef=gv('m-ie')||'0';tot=N(tU)+N(ef)}else{kg=gv('m-ik');uk=gv('m-iuk');tot=N(kg)*N(uk);ef=tot.toFixed(2)}cAdd('importaciones',{id:gv('m-ii'),fecha:gv('m-id'),tipo:t,modelo:gv('m-im'),categoria:gv('m-ic'),cantidad:gv('m-iq'),transfer_ars:tA,transfer_usd:tU,efectivo_usd:ef,kg,usd_por_kg:uk,total_usd:tot.toFixed(2),notas:gv('m-in')})}
+
+function addGastoRow(tipo){const d=getDolar();showModal(`<h3>Agregar Gasto ${tipo==='fijo'?'Fijo':'Variable'}</h3><label>Descripción</label><input id="m-gd"><label>Monto ARS</label><input id="m-ga" type="number" step="any" oninput="document.getElementById('m-gu').value=(this.value/${d}).toFixed(2)"><label>Monto USD</label><input id="m-gu" type="number" step="any" oninput="document.getElementById('m-ga').value=(this.value*${d}).toFixed(0)"><label>Frecuencia</label><select id="m-gf"><option value="mensual">Mensual</option><option value="semanal">Semanal</option><option value="anual">Anual</option><option value="unico">Único</option></select><label>Notas</label><input id="m-gn"><div class="modal-btns"><button class="btn btn-slate" onclick="closeModal()">Cancelar</button><button class="btn btn-gold" onclick="cAdd('gastos',{id:String((DATA.gastos||[]).length+1),descripcion:gv('m-gd'),monto_ars:gv('m-ga'),monto_usd:gv('m-gu'),tipo:'${tipo}',frecuencia:gv('m-gf'),mes:'',notas:gv('m-gn')})">Agregar</button></div>`)}
+
+function gv(id){return document.getElementById(id).value}
+function cAdd(key,obj){DATA[key].push(obj);closeModal();renderAll();toast('Agregado — guardá para confirmar')}
+
+// ═══ RENDERS ═══
+function renderAll(){rConfig();rCostos();rCompras();rImpo();rGastos();rRent()}
+
+function rConfig(){
+  const d=getDolar();
+  document.getElementById('config-kpis').innerHTML=kpi('Dólar Blue',fA(d),DOLAR_BLUE?'Auto (API)':'Manual','gold')+kpi('IVA Neto',fP(getCfg('iva_neto')),'')+kpi('Fee MP 1 cuota',fP(getCfg('mp_fee_1_cuota')),'')+kpi('Envío',fU(getCfg('envio_promedio_usd')),'');
+  document.getElementById('config-table').innerHTML=eT('config',[{label:'Parámetro',key:'parametro',edit:true},{label:'Valor',key:'valor',cls:'num',edit:true},{label:'Categoría',key:'categoria',edit:true},{label:'Tipo',key:'tipo',edit:true},{label:'Descripción',key:'descripcion',edit:true}],DATA.config||[],true);
+}
+
+function rCostos(){
+  const d=getDolar(),data=DATA.costos_producto||[],tot=data.filter(r=>r.activo==='SI').reduce((s,r)=>s+N(r.costo_usd),0);
+  document.getElementById('costos-kpis').innerHTML=kpi('Total/Unidad',fU(tot),fA(tot*d),'gold')+kpi('Activos',data.filter(r=>r.activo==='SI').length+'/'+data.length,'')+kpi('Dólar',fA(d),'');
+  document.getElementById('costos-table').innerHTML=eT('costos_producto',[{label:'#',key:'id'},{label:'Descripción',key:'descripcion',edit:true},{label:'ARS',key:'costo_ars',cls:'num',edit:true},{label:'USD',key:'costo_usd',cls:'num',edit:true},{label:'Activo',key:'activo',edit:true},{label:'Notas',key:'notas',edit:true}],data,true);
+}
+
+function rCompras(){
+  const L=DATA.compras_lineas||[],P=DATA.compras_pagos||[],tC=L.reduce((s,r)=>s+N(r.subtotal_usd),0),tP=P.reduce((s,r)=>s+N(r.monto_usd),0),sl=tC-tP;
+  document.getElementById('compras-kpis').innerHTML=kpi('Comprado',fU(tC),[...new Set(L.map(r=>r.factura).filter(Boolean))].length+' fact','gold')+kpi('Pagado',fU(tP),'','green')+kpi('Saldo',fU(sl),'',sl>0?'oxide':'green');
+  document.getElementById('compras-lineas-table').innerHTML=eT('compras_lineas',[{label:'Factura',key:'factura',edit:true},{label:'Fecha',key:'fecha',edit:true},{label:'Proveedor',key:'proveedor',edit:true},{label:'Modelo',key:'modelo',edit:true},{label:'Cat.',key:'categoria',edit:true},{label:'Cant.',key:'cantidad',cls:'num',edit:true},{label:'P.U. USD',key:'precio_unit_usd',cls:'num',edit:true},{label:'Subtotal',key:'subtotal_usd',cls:'num',edit:true},{label:'Notas',key:'notas',edit:true}],L,true);
+  document.getElementById('compras-pagos-table').innerHTML=eT('compras_pagos',[{label:'Factura',key:'factura',edit:true},{label:'Fecha',key:'fecha_pago',edit:true},{label:'Monto USD',key:'monto_usd',cls:'num',edit:true},{label:'Método',key:'metodo',edit:true},{label:'Notas',key:'notas',edit:true}],P,true);
+  const sm={};L.forEach(r=>{if(!r.factura)return;if(!sm[r.factura])sm[r.factura]={f:r.factura,p:r.proveedor,t:0,pg:0};sm[r.factura].t+=N(r.subtotal_usd)});P.forEach(r=>{if(sm[r.factura])sm[r.factura].pg+=N(r.monto_usd)});
+  let h='<table><thead><tr><th>Factura</th><th>Proveedor</th><th>Total</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead><tbody>';
+  Object.values(sm).forEach(r=>{const s=r.t-r.pg;h+=`<tr><td>${r.f}</td><td>${r.p}</td><td class="num">${fU(r.t)}</td><td class="num">${fU(r.pg)}</td><td class="num">${fU(s)}</td><td>${s<=0.01?chip('Pagado','pagado'):chip('Pendiente','pendiente')}</td></tr>`});
+  h+='</tbody></table>';document.getElementById('compras-saldo-table').innerHTML=h;
+}
+
+function rImpo(){
+  const data=DATA.importaciones||[],tot=data.reduce((s,r)=>s+N(r.total_usd),0),un=data.reduce((s,r)=>s+N(r.cantidad),0);
+  document.getElementById('impo-kpis').innerHTML=kpi('Total',fU(tot),'','gold')+kpi('Unidades',un.toString(),'')+kpi('Registros',data.length.toString(),'');
+  document.getElementById('impo-table').innerHTML=eT('importaciones',[{label:'ID',key:'id',edit:true},{label:'Fecha',key:'fecha',edit:true},{label:'Tipo',key:'tipo',edit:true},{label:'Modelo',key:'modelo',edit:true},{label:'Cat.',key:'categoria',edit:true},{label:'Cant.',key:'cantidad',cls:'num',edit:true},{label:'Transf ARS',key:'transfer_ars',cls:'num',edit:true},{label:'Transf USD',key:'transfer_usd',cls:'num',edit:true},{label:'Efect USD',key:'efectivo_usd',cls:'num',edit:true},{label:'Kg',key:'kg',cls:'num',edit:true},{label:'USD/Kg',key:'usd_por_kg',cls:'num',edit:true},{label:'Total USD',key:'total_usd',cls:'num',edit:true},{label:'Notas',key:'notas',edit:true}],data,true);
+  // Resumen
+  const mm=getImpoCostMap();
+  let h='<table><thead><tr><th>Modelo</th><th>Cant.</th><th>Total USD</th><th>Costo Prom./Reloj</th><th>Fuente</th></tr></thead><tbody>';
+  Object.entries(mm).forEach(([m,r])=>{h+=`<tr><td>${m}</td><td class="num">${r.cant}</td><td class="num">${fU(r.total)}</td><td class="num">${fU(r.prom)}</td><td>${chip('Auto → Rent.','auto')}</td></tr>`});
+  if(!Object.keys(mm).length)h+='<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px">Sin datos de importación</td></tr>';
+  h+='</tbody></table>';document.getElementById('impo-resumen-table').innerHTML=h;
+}
+
+function rGastos(){
+  const data=DATA.gastos||[],d=getDolar(),fi=data.filter(r=>r.tipo==='fijo'),va=data.filter(r=>r.tipo==='variable');
+  const tF=fi.reduce((s,r)=>s+N(r.monto_ars),0),tV=va.reduce((s,r)=>s+N(r.monto_ars),0),tT=tF+tV;
+  document.getElementById('gastos-kpis').innerHTML=kpi('Total Mensual',fA(tT),fU(d>0?tT/d:0),'gold')+kpi('Fijos',fA(tF),fi.length+' items')+kpi('Variables',fA(tV),va.length+' items','oxide')+kpi('% Fijo',tT>0?fP(tF/tT):'—','');
+  const gc=[{label:'Descripción',key:'descripcion',edit:true},{label:'ARS',key:'monto_ars',cls:'num',edit:true},{label:'USD',key:'monto_usd',cls:'num',edit:true},{label:'Frecuencia',key:'frecuencia',edit:true},{label:'Notas',key:'notas',edit:true}];
+  document.getElementById('gastos-fijos-table').innerHTML=eT('gastos',gc,fi,true);
+  document.getElementById('gastos-var-table').innerHTML=eT('gastos_v',gc,va,true);
+}
+
+function rRent(){
+  const P=DATA.precios_venta||[],d=getDolar(),iva=getCfg('iva_neto'),insp=getCfg('inspeccion_china_fob'),env=getCfg('envio_promedio_usd');
+  const pkg=(DATA.costos_producto||[]).filter(r=>r.activo==='SI').reduce((s,r)=>s+N(r.costo_usd),0);
+  const fm={1:getCfg('mp_fee_1_cuota'),2:getCfg('mp_fee_2_cuotas'),3:getCfg('mp_fee_3_cuotas'),6:getCfg('mp_fee_6_cuotas'),9:getCfg('mp_fee_9_cuotas'),12:getCfg('mp_fee_12_cuotas')};
+  const impoMap = getImpoCostMap();
+
+  // Editable prices
+  document.getElementById('rent-precios-table').innerHTML=eT('precios_venta',[{label:'Modelo',key:'modelo',edit:true},{label:'FOB USD',key:'fob_usd',cls:'num',edit:true},{label:'Impo A (manual)',key:'impo_a_usd',cls:'num',edit:true},{label:'Impo B (manual)',key:'impo_b_usd',cls:'num',edit:true},{label:'Cuotas',key:'cuotas_default',cls:'num',edit:true},{label:'PV ARS',key:'pventa_ars',cls:'num',edit:true},{label:'Notas',key:'notas',edit:true}],P,false);
+
+  // Calculated
+  let h='<table><thead><tr><th>Modelo</th><th>FOB</th><th>Impo</th><th>Fuente Impo</th><th>Insp.</th><th>Pkg</th><th>Costo 1</th><th>Envío</th><th>Cuotas</th><th>Financ.</th><th>IVA</th><th>Costo Total</th><th>PV ARS</th><th>PV USD</th><th>Margen</th><th></th></tr></thead><tbody>';
+  let tM=0,nM=0;
+
+  P.forEach(r=>{
+    const modelo = (r.modelo||'').trim();
+    const fob=N(r.fob_usd), cu=N(r.cuotas_default)||1, pvA=N(r.pventa_ars);
+    if(!pvA) return;
+
+    // IMPO: use importaciones if available, otherwise manual
+    let impoUSD, impoSource;
+    if (impoMap[modelo] && impoMap[modelo].cant > 0) {
+      impoUSD = impoMap[modelo].prom;
+      impoSource = chip('Auto','auto');
+    } else {
+      impoUSD = N(r.impo_a_usd) + N(r.impo_b_usd);
+      impoSource = chip('Manual','manual');
+    }
+
+    const pvU=pvA/d, ins=fob*insp, c1=fob+impoUSD+ins+pkg;
+    const fee=fm[cu]||fm[1], fin=pvA*fee/d, iv=pvA*iva/d;
+    const cT=c1+env+fin+iv, mg=pvU>0?(pvU-cT)/pvU:0;
+    tM+=mg;nM++;
+    const bc=mg>=.4?'hi':mg>=.3?'mid':'low',bw=Math.max(0,Math.min(100,mg*100));
+    h+=`<tr><td>${modelo}</td><td class="num">${fU(fob)}</td><td class="num">${fU(impoUSD)}</td><td>${impoSource}</td><td class="num">${fU(ins)}</td><td class="num">${fU(pkg)}</td><td class="num">${fU(c1)}</td><td class="num">${fU(env)}</td><td class="num">${cu}</td><td class="num">${fU(fin)}</td><td class="num">${fU(iv)}</td><td class="num"><strong>${fU(cT)}</strong></td><td class="num">${fA(pvA)}</td><td class="num">${fU(pvU)}</td><td class="num"><strong>${fP(mg)}</strong></td><td><div class="margin-bar-bg"><div class="margin-bar ${bc}" style="width:${bw}%"></div></div></td></tr>`;
+  });
+  h+='</tbody></table>';
+  document.getElementById('rent-calc-table').innerHTML=h;
+
+  const avg=nM>0?tM/nM:0;
+  document.getElementById('rent-kpis').innerHTML=kpi('Modelos',nM.toString(),'')+kpi('Margen Prom.',fP(avg),'',avg>=.35?'green':'oxide')+kpi('Packaging',fU(pkg),'')+kpi('Dólar',fA(d),DOLAR_BLUE?'Auto':'Manual','gold');
+}
+
+// ═══ TABS ═══
+document.querySelectorAll('.tab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(x=>x.classList.remove('active'));t.classList.add('active');document.getElementById('panel-'+t.dataset.tab).classList.add('active')})});
+
+// ═══ INIT ═══
+window.addEventListener('load', () => { initAuth(); loadAllData(); });
+</script>
+</body>
+</html>
